@@ -1,4 +1,4 @@
-name: Build Kernel for Redmi Note 9 Pro
+name: Build Kernel for Redmi Note 9 Pro (gauguin)
 
 on:
   workflow_dispatch:
@@ -7,35 +7,32 @@ jobs:
   build:
     runs-on: ubuntu-20.04
     steps:
-    - name: Install Python 2
+    - name: Install Build Dependencies
       run: |
         sudo apt update
+        sudo apt install -y \
+          gcc-aarch64-linux-gnu \
+          binutils-aarch64-linux-gnu \
+          flex bison libssl-dev bc \
+          git curl ca-certificates
+
+    - name: Set Python 2 as default
+      run: |
         sudo apt install -y python2
         sudo ln -sf /usr/bin/python2 /usr/bin/python
-        
-    - name: Checkout kernel source
+        python --version  # 验证
+
+    - name: Checkout Kernel Source
       run: |
-        git clone --depth=1 -b gauguin-q-oss https://github.com/MiCode/Xiaomi_Kernel_OpenSource.git kernel
-        cd kernel
-        make ARCH=arm64 gauguin_defconfig
-        
+        git clone --depth=1 -b gauguin-q-oss \
+          https://github.com/MiCode/Xiaomi_Kernel_OpenSource.git kernel
+
     - name: Setup SukiSU
       run: |
         cd kernel
         curl -LSs "https://raw.githubusercontent.com/SukiSU-Ultra/SukiSU-Ultra/main/kernel/setup.sh" | bash -s main
-        scripts/config --enable KALLSYMS
-        scripts/config --enable KALLSYMS_ALL
         
-    - name: Build
+    - name: Configure Kernel
       run: |
         cd kernel
-        export ARCH=arm64
-        export CROSS_COMPILE=aarch64-linux-gnu-
-        sudo apt install -y gcc-aarch64-linux-gnu
-        make -j$(nproc)
-        
-    - name: Upload
-      uses: actions/upload-artifact@v4
-      with:
-        name: kernel-image
-        path: kernel/arch/arm64/boot/Image.gz-dtb
+        make ARCH=arm64 gauguin_defconfi
